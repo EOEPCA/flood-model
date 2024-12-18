@@ -1,0 +1,2 @@
+model_file: "/app/checkpoints/Sen1Floods11_1_0.4923180341720581.onnx"
+input_id: "/app/sen1floods11-dataset/v1.1/data/flood_events/HandLabeled/S1Hand/India_80221_S1Hand.tif"

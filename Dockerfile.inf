@@ -1,0 +1,17 @@
+FROM python:3.10-slim
+
+COPY requirements_inf.txt /app/requirements_inf.txt
+
+RUN apt-get update && \
+    apt-get install -y libexpat1 && \
+    pip install --no-cache-dir -r /app/requirements_inf.txt && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY src/* /app
+COPY sen1floods11/* /app
+
+WORKDIR /app
+
+ENTRYPOINT ["/app/src/inference.py"]
+
+CMD []

@@ -1,0 +1,11 @@
+Dockerfile*
+poetry.lock
+pyproject.toml
+README.md
+*.yml
+*.cwl
+*.png
+LICENSE
+.vscode
+sen1floods11-dataset/v1.1/
+sen1floods11-dataset/.dvc/cache/
