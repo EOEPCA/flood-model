@@ -1,10 +1,12 @@
+"""Contains all the features needed for model training."""
+
 import os
 import warnings
 
 import argparse
 from datasets import load_dataset
 import torch
-import torch.nn as nn
+from torch import nn
 import onnx
 import mlflow
 import pandas as pd
@@ -33,8 +35,22 @@ TRAIN_SIZE = 252
 
 
 class TrainTestValidation:
-    """This class contains all the metrics and methods needed
-    to perform a train test validation session of SimpleUNet model."""
+    """
+    Description: A custom class to manage the training, testing, and validation
+    of the flood-model. The class supports three distinct modes for data
+    handling during training:
+        - Normal Mode: Data is loaded locally from the training split without
+    any additional streaming or caching.
+        - Stream Mode: Data is streamed from an S3 bucket using DVC. The
+    streamed data is stored locally in a cache for faster subsequent access.
+        - No Cache Mode: When stream mode is enabled, this option prevents
+    saving the streamed data to the cache. Data is downloaded and processed on
+    the fly for each batch.
+    For the validation process, key metrics such as loss, precision, and
+    Intersection over Union (IoU) are computed to evaluate the model's
+    performance on unseen data. These metrics help track the model's accuracy
+    and its ability to detect flood zones effectively.
+    """
 
     # Metrics in the current epoch.
     running_loss = 0
@@ -199,7 +215,6 @@ class TrainTestValidation:
         """Train in 1 picture."""
         # zero the parameter gradients
         self.optimizer.zero_grad()
-        # net = net.cuda()
 
         # forward + backward + optimize
         outputs = self.net(inputs)
@@ -216,7 +231,6 @@ class TrainTestValidation:
     def validation_loop(self, epoch):
         """Validation for 1 epoch."""
         self.net = self.net.eval()
-        # net = net.cuda()
         count = 0
         iou = 0
         loss = 0
@@ -224,7 +238,6 @@ class TrainTestValidation:
         self.valid_iter = iter(self.valid_loader)
         with torch.no_grad():
             for images, labels in self.valid_iter:
-                # net = net.cuda()
                 outputs = self.net(images)
                 valid_loss = self.criterion(outputs, labels.long())
                 valid_iou = computeIOU(outputs, labels)
@@ -242,7 +255,6 @@ class TrainTestValidation:
             save_path = os.path.join(
                 "checkpoints", "{}_{}_{}.onnx".format(RUNNAME, epoch, iou.item())
             )
-            # torch.save(self.net.state_dict(), save_path)
             input_tensor = torch.randn(4, 2, 256, 256)
             torch.onnx.export(self.net, input_tensor, save_path)
             print("model saved at", save_path, ".")
