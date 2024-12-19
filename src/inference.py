@@ -1,5 +1,3 @@
-#!/usr/local/bin/python3
-
 """ This file can be used to perform an inference on the trained flood detection model."""
 
 import argparse

@@ -7,11 +7,10 @@ RUN apt-get update && \
     pip install --no-cache-dir -r /app/requirements_inf.txt && \
     rm -rf /var/lib/apt/lists/*
 
-COPY src/* /app
-COPY sen1floods11/* /app
+COPY . /app
 
 WORKDIR /app
 
-ENTRYPOINT ["/app/src/inference.py"]
+ENTRYPOINT ["python3", "/app/src/inference.py"]
 
 CMD []
