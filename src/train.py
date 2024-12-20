@@ -302,9 +302,9 @@ def run():
     warnings.filterwarnings("ignore")
 
     mlflow.set_tracking_uri(
-        "https://sharinghub.p2.csgroup.space/mlflow/space_applications/mlops-services/sample-projects/ai-models/flood-model/tracking/"
+        "https://sharinghub.develop.eoepca.org/mlflow/sharinghub-test/flood-model/tracking/"
     )
-    mlflow.set_experiment("first_experiment (1493)")
+    mlflow.set_experiment("first_experiment (7)")
 
     with mlflow.start_run():
 
@@ -312,7 +312,9 @@ def run():
         mlflow.log_param("LR", LR)
         mlflow.log_param("EPOCH_PER_UPDATE", EPOCHS_PER_UPDATE)
 
-        dataset_source_url = "https://gitlab.si.c-s.fr/space_applications/mlops-services/sample-projects/datasets/sen1floods11-dataset"
+        dataset_source_url = (
+            "https://gitlab.develop.eoepca.org/sharinghub-test/sen1floods11-dataset"
+        )
         raw_data = pd.read_csv(
             dataset_source_url,
             delimiter=",",
