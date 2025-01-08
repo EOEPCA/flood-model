@@ -7,10 +7,13 @@ RUN apt-get update && \
     pip install --no-cache-dir -r /app/requirements_inf.txt && \
     rm -rf /var/lib/apt/lists/*
 
-COPY . /app
-
 WORKDIR /app
 
-ENTRYPOINT ["python3", "/app/src/inference.py"]
+ARG ONNX_PATH
+COPY ${ONNX_PATH} /app/model.onnx
+COPY src/inference.py /app/inference.py
+
+ENTRYPOINT ["python3", "/app/inference.py", "/app/model.onnx"]
 
 CMD []
+

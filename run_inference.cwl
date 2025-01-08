@@ -5,11 +5,7 @@ class: CommandLineTool
 
 inputs:
   input_id:
-    type: string
-    inputBinding:
-      position: 2
-  model_file:
-    type: string
+    type: File
     inputBinding:
       position: 1
 outputs:

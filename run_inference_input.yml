@@ -1,2 +1,3 @@
-model_file: "/app/checkpoints/Sen1Floods11_0_0.5194225907325745.onnx"
-input_id: "/app/inference/India_80221_S1Hand.tif"
+input_id:
+  class: File
+  location: inference/Pakistan_43105_S1Hand.tif
