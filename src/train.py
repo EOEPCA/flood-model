@@ -26,7 +26,7 @@ from evaluation import computeAccuracy, computeIOU
 
 # Defining global variables
 LR = 5e-4
-EPOCHS = 1
+EPOCHS = 5
 EPOCHS_PER_UPDATE = 1
 RUNNAME = "Sen1Floods11"
 S1 = "sen1floods11-dataset/v1.1/data/flood_events/HandLabeled/S1Hand/"
