@@ -26,7 +26,7 @@ from evaluation import computeAccuracy, computeIOU
 
 # Defining global variables
 LR = 5e-4
-EPOCHS = 5
+EPOCHS = 1
 EPOCHS_PER_UPDATE = 1
 RUNNAME = "Sen1Floods11"
 S1 = "sen1floods11-dataset/v1.1/data/flood_events/HandLabeled/S1Hand/"
@@ -260,7 +260,7 @@ class TrainTestValidation:
             print("model saved at", save_path, ".")
 
             onnx_model = onnx.load(save_path)
-            artifact_path = f"iou_{iou.item()}"
+            artifact_path = "model"
             mlflow.onnx.log_model(
                 onnx_model=onnx_model,
                 artifact_path=artifact_path,
