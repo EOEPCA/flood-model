@@ -11,7 +11,7 @@ __pycache__/
 env/
 build/
 develop-eggs/
-dist/ 
+dist/
 downloads/
 eggs/
 .eggs/
@@ -107,3 +107,6 @@ ENV/
 
 # Dataset
 sen1floods11-dataset
+
+# Predictions
+/predictions

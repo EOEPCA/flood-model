@@ -1,29 +1,30 @@
-""" This file can be used to perform an inference on the trained flood detection model."""
+"""This file can be used to perform an inference on the trained flood detection model."""
 
 import argparse
-import os
 import numpy as np
+import os
+from pathlib import Path
 
 import onnxruntime as ort
 from PIL import Image
 import rasterio
 
 
-def load_model(path):
+def load_model(fpath):
     """Load the model in evaluation mode."""
 
-    ort_session = ort.InferenceSession(path)
+    ort_session = ort.InferenceSession(fpath)
     return ort_session
 
 
-def get_arr_flood(fname):
+def get_arr_flood(fpath):
     """open image with rasterio."""
-    return rasterio.open(fname).read()
+    return rasterio.open(fpath).read()
 
 
-def prepare_input_inference(data):
+def prepare_input_inference(fpath):
     """prepare input."""
-    arr_x = np.nan_to_num(get_arr_flood(data))
+    arr_x = np.nan_to_num(get_arr_flood(fpath))
     arr_x = np.clip(arr_x, -50, 1)
     arr_x = (arr_x + 50) / 51
     return arr_x
@@ -124,11 +125,8 @@ def black_and_white(pred_image):
     return bw_image_pil
 
 
-def save(output, save_path="predictions/"):
+def save(output, output_path):
     """Save the predicted picture in a black and white tif file."""
-
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
 
     # Convert probablities into classes.
     output = np.argmax(output, axis=1)
@@ -144,35 +142,45 @@ def save(output, save_path="predictions/"):
     bottom_row = np.concatenate((bottom_left, bottom_right), axis=1)
     reconstructed_image = np.concatenate((top_row, bottom_row), axis=0)
 
+    os.makedirs(output_path.parent, exist_ok=True)
+
     # Save it in predictions folder.
     pred_image_pil = black_and_white(reconstructed_image)
-    pred_image_pil.save(f"{save_path}/prediction.tif")
-    print(f"image saved at {save_path}prediction.tif")
+    pred_image_pil.save(output_path)
+    print(f"image saved at {output_path}")
 
 
 def run():
-    """Perfom an inference and save the results.
+    """Perform an inference and save the results.
     Outputs: predictions/prediction.tif
     """
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("param1", type=str, help="model_path")
-    parser.add_argument("param2", type=str, help="input_path")
+    parser.add_argument("model_path", type=str, help="Model path")
+    parser.add_argument("input_path", type=str, help="Input file path")
+    parser.add_argument("-o", "--output-path", type=str, help="Output file path")
 
     args = parser.parse_args()
 
     # Load model.
-    model = load_model(args.param1)
+    model_path = Path(args.model_path)
+    model = load_model(model_path)
 
     # Prepare Input.
-    input_inference = prepare_input_inference(args.param2)
+    input_path = Path(args.input_path)
+    input_inference = prepare_input_inference(input_path)
     image = process_inference(input_inference)
 
     # Run prediction.
     output = predict(model, image)
 
     # Metrics and save.
-    save(output, save_path="predictions/")
+    output_path = (
+        Path(args.output_path)
+        if args.output_path
+        else Path(f"predictions/prediction-{input_path.name}")
+    )
+    save(output, output_path)
 
 
 if __name__ == "__main__":
