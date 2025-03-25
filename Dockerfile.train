@@ -1,11 +1,11 @@
 FROM python:3.10-slim
 
-COPY requirements_train.txt /app/requirements_train.txt
+COPY requirements-train.txt /app/requirements-train.txt
 
 RUN apt-get update && \
     apt-get install -y libexpat1 git && \
     pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir -r /app/requirements_train.txt && \
+    pip install --no-cache-dir -r /app/requirements-train.txt && \
     rm -rf /var/lib/apt/lists/*
 
 COPY src /app/src
