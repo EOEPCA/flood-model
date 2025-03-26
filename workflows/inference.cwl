@@ -7,12 +7,12 @@ $graph:
   inputs:
     input_id:
       label: Input Id
-      type: File 
+      type: File
   outputs:
     output_file:
       label: Output File
       type: File
-      outputSource: node_run_workflow_inference/output_file 
+      outputSource: node_run_workflow_inference/output_file
 
   steps:
     node_run_workflow_inference:
@@ -20,8 +20,8 @@ $graph:
       in:
         input_id:
           source: input_id
-      out: 
-        - output_file 
+      out:
+        - output_file
 
 - class: CommandLineTool
   id: run_workflow_inference
