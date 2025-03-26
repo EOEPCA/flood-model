@@ -1,46 +1,53 @@
-cwlVersion: v1.0
+cwlVersion: v1.2
+s:softwareVersion: "0.1.0"
+
+$namespaces:
+  s: https://schema.org/
+schemas:
+- http://schema.org/version/9.0/schemaorg-current-http.rdf
+
 $graph:
 - class: Workflow
   id: main
-  label: Run inference
-  doc: Run an inference for flood detection
+  label: Flood detection model inference
+  doc: Run flood detection model inference image
   inputs:
-    input_id:
-      label: Input Id
-      type: File
+    input_dir:
+      type: Directory
+      label: Image directory
   outputs:
-    output_file:
-      label: Output File
-      type: File
-      outputSource: node_run_workflow_inference/output_file
-
+    output_dir:
+      type: Directory
+      label: Output directory
+      outputSource: node_run_inference/output_dir
   steps:
-    node_run_workflow_inference:
-      run: "#run_workflow_inference"
+    node_run_inference:
+      run: "#run_inference"
       in:
-        input_id:
-          source: input_id
+        input_dir: input_dir
       out:
-        - output_file
+        - output_dir
 
 - class: CommandLineTool
-  id: run_workflow_inference
-  label: Run inference tool
-  doc: Run an inference for flood detection
+  id: run_inference
+  label: Flood detection model inference
+  doc: Run flood detection model inference image
+  requirements:
+    ResourceRequirement:
+      coresMin: 1
+      coresMax: 2
+      ramMin: 2048
+      ramMax: 4096
   hints:
-    SoftwareRequirement:
-      packages:
-        - package: flood-inference
-          version: ["latest"]
     DockerRequirement:
-      dockerPull: inference
+      dockerPull: flood-detection-model:latest
   inputs:
-    input_id:
-      type: File
+    input_dir:
+      type: Directory
       inputBinding:
         position: 1
   outputs:
-    output_file:
-      type: File
+    output_dir:
+      type: Directory
       outputBinding:
-        glob: "predictions/prediction.tif"
+        glob: "predictions"
