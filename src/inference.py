@@ -1,6 +1,7 @@
 """This file can be used to perform an inference on the trained flood detection model."""
 
 import argparse
+import glob
 import numpy as np
 import os
 from pathlib import Path
@@ -157,8 +158,8 @@ def run():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("model_path", type=str, help="Model path")
-    parser.add_argument("input_path", type=str, help="Input file path")
-    parser.add_argument("-o", "--output-path", type=str, help="Output file path")
+    parser.add_argument("input_path", type=str, help="Input path")
+    parser.add_argument("-o", "--output-path", type=str, help="Output path")
 
     args = parser.parse_args()
 
@@ -166,21 +167,31 @@ def run():
     model_path = Path(args.model_path)
     model = load_model(model_path)
 
-    # Prepare Input.
     input_path = Path(args.input_path)
-    input_inference = prepare_input_inference(input_path)
-    image = process_inference(input_inference)
+    if input_path.is_file():
+        output_path = (
+            Path(args.output_path)
+            if args.output_path
+            else Path(f"predictions/prediction-{input_path.name}")
+        )
+        input_map = {input_path: output_path}
+    elif input_path.is_dir():
+        output_path = (
+            Path(args.output_path) if args.output_path else Path("predictions")
+        )
+        input_map = {}
+        for _fpath in glob.glob("**/*.tif", root_dir=input_path, recursive=True):
+            fpath = Path(_fpath)
+            input_map[input_path / fpath] = output_path / f"prediction-{fpath.name}"
 
-    # Run prediction.
-    output = predict(model, image)
-
-    # Metrics and save.
-    output_path = (
-        Path(args.output_path)
-        if args.output_path
-        else Path(f"predictions/prediction-{input_path.name}")
-    )
-    save(output, output_path)
+    for input_path, output_path in input_map.items():
+        # Prepare Input.
+        input_inference = prepare_input_inference(input_path)
+        image = process_inference(input_inference)
+        # Run prediction.
+        output = predict(model, image)
+        # Metrics and save.
+        save(output, output_path)
 
 
 if __name__ == "__main__":
