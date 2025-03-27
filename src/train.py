@@ -1,9 +1,12 @@
 """Contains all the features needed for model training."""
 
+import argparse
 import os
+from pathlib import Path
+import uuid
+import time
 import warnings
 
-import argparse
 from datasets import load_dataset
 import torch
 from torch import nn
@@ -51,6 +54,8 @@ class TrainTestValidation:
     performance on unseen data. These metrics help track the model's accuracy
     and its ability to detect flood zones effectively.
     """
+
+    models_informations = {}
 
     # Metrics in the current epoch.
     running_loss = 0
@@ -184,6 +189,19 @@ class TrainTestValidation:
             self.train_validation_loop(num_epochs=10, cur_epoch=i)
             self.epochs.append(i)
             print("max valid iou:", self.max_valid_iou)
+        input_tensor = torch.randn(4, 2, 256, 256)
+        for models, metrics in self.models_informations.items():
+            iou = metrics["iou"]
+            if iou == self.max_valid_iou:
+                onnx_model = onnx.load(models)
+                mlflow.onnx.log_model(
+                    onnx_model=onnx_model,
+                    artifact_path="model",
+                    input_example=input_tensor.numpy(),
+                    save_as_external_data=False,
+                )
+                print("model saved in MLflow.")
+                break
 
     def train_validation_loop(
         self,
@@ -252,21 +270,15 @@ class TrainTestValidation:
 
         if iou > self.max_valid_iou:
             self.max_valid_iou = iou
-            save_path = os.path.join(
-                "checkpoints", "{}_{}_{}.onnx".format(RUNNAME, epoch, iou.item())
+            save_path = Path(
+                "checkpoints", f"model_{str(uuid.uuid4())[:8]}_{int(time.time())}.onnx"
             )
+            # save_path = os.path.join(
+            #     "checkpoints", "{}_{}_{}.onnx".format(RUNNAME, epoch, iou.item())
+            # )
             input_tensor = torch.randn(4, 2, 256, 256)
             torch.onnx.export(self.net, input_tensor, save_path)
             print("model saved at", save_path, ".")
-
-            onnx_model = onnx.load(save_path)
-            artifact_path = "model"
-            mlflow.onnx.log_model(
-                onnx_model=onnx_model,
-                artifact_path=artifact_path,
-                input_example=input_tensor.numpy(),
-            )
-            print("model saved in MLflow.")
 
         loss = loss / count
         mlflow.log_metric("loss", loss, step=epoch)
@@ -285,6 +297,8 @@ class TrainTestValidation:
         self.valid_losses.append(loss)
         self.valid_accuracies.append(accuracy)
         self.valid_ious.append(iou)
+
+        self.models_informations[save_path] = {"iou": iou}
 
 
 def run():
