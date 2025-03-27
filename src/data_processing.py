@@ -1,18 +1,17 @@
-import random
 import csv
 import os
+import random
 
+import mlflow
+import numpy as np
+import rasterio
 import torch
 import torchvision.transforms.functional as F
 from PIL import Image
 from torchvision import transforms
-import rasterio
-import numpy as np
-import mlflow
 
 
 class InMemoryDataset(torch.utils.data.Dataset):
-
     def __init__(self, data_list, preprocess_func):
         self.data_list = data_list
         self.preprocess_func = preprocess_func
@@ -39,7 +38,6 @@ class StreamingDataset(torch.utils.data.IterableDataset):
 
 
 def processAndAugment(data, streaming=False):
-
     if streaming:
         x = data["image"]
         y = data["mask"].astype(np.int16)

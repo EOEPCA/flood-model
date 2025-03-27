@@ -2,30 +2,30 @@
 
 import argparse
 import os
-from pathlib import Path
-import uuid
 import time
+import uuid
 import warnings
+from pathlib import Path
 
-from datasets import load_dataset
-import torch
-from torch import nn
-import onnx
 import mlflow
+import onnx
 import pandas as pd
+import torch
+from datasets import load_dataset
+from IPython.display import clear_output
+from torch import nn
 from tqdm import tqdm
 
-from IPython.display import clear_output
 from data_processing import (
-    processAndAugment,
-    processTestIm,
     InMemoryDataset,
     StreamingDataset,
     load_flood_train_data,
     load_flood_valid_data,
+    processAndAugment,
+    processTestIm,
 )
-from SimpleUNet import SimpleUNet
 from evaluation import computeAccuracy, computeIOU
+from SimpleUNet import SimpleUNet
 
 # Defining global variables
 LR = 5e-4
@@ -55,38 +55,25 @@ class TrainTestValidation:
     and its ability to detect flood zones effectively.
     """
 
-    models_informations = {}
-
-    # Metrics in the current epoch.
-    running_loss = 0
-    running_iou = 0
-    running_count = 0
-    running_accuracy = 0
-    max_valid_iou = 0
-
-    # Metrics lists after X epochs.
-    epochs = []
-    train_losses = []
-    train_accuracies = []
-    train_ious = []
-    valid_losses = []
-    valid_accuracies = []
-    valid_ious = []
-
-    # Datasets and their iterators.
-    train_loader: torch.utils.data.DataLoader
-    train_iter: iter
-
-    valid_loader: torch.utils.data.DataLoader
-    valid_iter: iter
-
-    # Model parameters.
-    net: SimpleUNet
-    criterion: nn.CrossEntropyLoss
-    optimizer: torch.optim.AdamW
-    scheduler: torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
-
     def __init__(self, s1, labels, stream=False, no_cache=False):
+        self.model_information = {}
+
+        # Metrics in the current epoch.
+        self.running_loss = 0
+        self.running_iou = 0
+        self.running_count = 0
+        self.running_accuracy = 0
+        self.max_valid_iou = 0
+
+        # Metrics lists after X epochs.
+        self.epochs = []
+        self.train_losses = []
+        self.train_accuracies = []
+        self.train_ious = []
+        self.valid_losses = []
+        self.valid_accuracies = []
+        self.valid_ious = []
+
         if stream:
             print("STREAMING MODE ENABLED.")
 
@@ -190,7 +177,7 @@ class TrainTestValidation:
             self.epochs.append(i)
             print("max valid iou:", self.max_valid_iou)
         input_tensor = torch.randn(4, 2, 256, 256)
-        for models, metrics in self.models_informations.items():
+        for models, metrics in self.model_information.items():
             iou = metrics["iou"]
             if iou == self.max_valid_iou:
                 onnx_model = onnx.load(models)
@@ -298,7 +285,7 @@ class TrainTestValidation:
         self.valid_accuracies.append(accuracy)
         self.valid_ious.append(iou)
 
-        self.models_informations[save_path] = {"iou": iou}
+        self.model_information[save_path] = {"iou": iou}
 
 
 def run():
@@ -321,7 +308,6 @@ def run():
     mlflow.set_experiment("first_experiment (7)")
 
     with mlflow.start_run():
-
         mlflow.log_param("dvc_file_path", "v1.1.dvc")
         mlflow.log_param("LR", LR)
         mlflow.log_param("EPOCH_PER_UPDATE", EPOCHS_PER_UPDATE)

@@ -2,13 +2,13 @@
 
 import argparse
 import glob
-import numpy as np
 import os
 from pathlib import Path
 
+import numpy as np
 import onnxruntime as ort
-from PIL import Image
 import rasterio
+from PIL import Image
 
 
 def load_model(fpath):
