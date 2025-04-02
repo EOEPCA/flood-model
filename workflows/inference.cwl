@@ -40,7 +40,7 @@ $graph:
       ramMax: 4096
   hints:
     DockerRequirement:
-      dockerPull: flood-detection-model:latest
+      dockerPull: eoepca/flood-detection-model:latest
   inputs:
     input_dir:
       type: Directory
