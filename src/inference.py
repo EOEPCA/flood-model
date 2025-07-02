@@ -1,12 +1,16 @@
 """This file can be used to perform an inference on the trained flood detection model."""
 
 import argparse
+import datetime
 import glob
+import mimetypes
 import os
+import uuid
 from pathlib import Path
 
 import numpy as np
 import onnxruntime as ort
+import pystac
 import rasterio
 from PIL import Image
 
@@ -148,18 +152,38 @@ def save(output, output_path):
     # Save it in predictions folder.
     pred_image_pil = black_and_white(reconstructed_image)
     pred_image_pil.save(output_path)
-    print(f"image saved at {output_path}")
+    print(f"image saved at: {output_path}")
+
+
+def predict_image(model, input_path, output_path):
+    """Prepare input, predict and save to output."""
+    input_inference = prepare_input_inference(input_path)
+    image = process_inference(input_inference)
+    # Run prediction.
+    output = predict(model, image)
+    # Save output image.
+    save(output, output_path)
 
 
 def run():
-    """Perform an inference and save the results.
-    Outputs: predictions/prediction.tif
-    """
+    """Perform an inference and save the results."""
 
     parser = argparse.ArgumentParser()
     parser.add_argument("model_path", type=str, help="Model path")
     parser.add_argument("input_path", type=str, help="Input path")
-    parser.add_argument("-o", "--output-path", type=str, help="Output path")
+    parser.add_argument(
+        "-o",
+        "--output-dir",
+        default=Path("predictions"),
+        type=Path,
+        help="Output directory path",
+    )
+    parser.add_argument(
+        "-s",
+        "--stac-output",
+        action="store_true",
+        help="Generate STAC catalog as output",
+    )
 
     args = parser.parse_args()
 
@@ -169,29 +193,51 @@ def run():
 
     input_path = Path(args.input_path)
     if input_path.is_file():
-        output_path = (
-            Path(args.output_path)
-            if args.output_path
-            else Path(f"predictions/prediction-{input_path.name}")
-        )
-        input_map = {input_path: output_path}
+        input_images = [args.output_dir / f"prediction-{input_path.name}"]
     elif input_path.is_dir():
-        output_path = (
-            Path(args.output_path) if args.output_path else Path("predictions")
-        )
-        input_map = {}
-        for _fpath in glob.glob("**/*.tif", root_dir=input_path, recursive=True):
-            fpath = Path(_fpath)
-            input_map[input_path / fpath] = output_path / f"prediction-{fpath.name}"
+        input_images = [
+            input_path / fpath
+            for fpath in glob.glob("**/*.tif", root_dir=input_path, recursive=True)
+        ]
 
-    for input_path, output_path in input_map.items():
-        # Prepare Input.
-        input_inference = prepare_input_inference(input_path)
-        image = process_inference(input_inference)
-        # Run prediction.
-        output = predict(model, image)
-        # Metrics and save.
-        save(output, output_path)
+    if args.stac_output:
+        print(f"Generating STAC catalog at: {args.output_dir}")
+        curr_datetime = datetime.datetime.now(tz=datetime.timezone.utc)
+        stac_catalog = pystac.Catalog(
+            id=f"flood-inference_{curr_datetime.strftime('%y-%m-%d')}_{str(uuid.uuid4())[:8]}",
+            description="Flood model inference.",
+        )
+        stac_item = pystac.Item(
+            id="data",
+            geometry=None,
+            bbox=None,
+            datetime=curr_datetime,
+            properties={},
+        )
+
+        for image_path in input_images:
+            mime_type, _ = mimetypes.guess_type(image_path)
+            media_type = mime_type if mime_type else "application/octet-stream"
+            asset_path: Path = (
+                args.output_dir / stac_item.id / f"prediction-{image_path.name}"
+            )
+            stac_item.add_asset(
+                key=asset_path.name,
+                asset=pystac.Asset(href=asset_path.name, media_type=media_type),
+            )
+            predict_image(model, image_path, asset_path)
+
+        stac_catalog.add_item(stac_item)
+        stac_catalog.normalize_and_save(
+            str(args.output_dir),
+            catalog_type=pystac.CatalogType.SELF_CONTAINED,
+        )
+        print("STAC catalog generated")
+    else:
+        for image_path in input_images:
+            predict_image(
+                model, image_path, args.output_dir / f"prediction-{image_path.name}"
+            )
 
 
 if __name__ == "__main__":
