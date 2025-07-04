@@ -1,5 +1,5 @@
 cwlVersion: v1.2
-s:softwareVersion: "0.2.0"
+s:softwareVersion: "0.3.0"
 
 $namespaces:
   s: https://schema.org/
@@ -13,17 +13,17 @@ $graph:
     doc: Run flood detection model inference on STAC catalog
     inputs:
       stac_item:
-        type: string
+        type: Directory
         label: STAC item reference
         doc: Reference to a STAC item
     outputs:
       stac_catalog:
         type: Directory
-        outputSource: node_inference/stac_catalog
+        outputSource: node_stac_cataloging/stac_catalog
 
     steps:
-      node_download_stac:
-        run: "#download-stac"
+      node_stac_prepare:
+        run: "#stac-prepare"
         in:
           stac_item: stac_item
         out:
@@ -31,7 +31,13 @@ $graph:
       node_inference:
         run: "#inference"
         in:
-          input_dir: node_download_stac/assets_dir
+          input_dir: node_stac_prepare/assets_dir
+        out:
+          - output_dir
+      node_stac_cataloging:
+        run: "#stac-cataloging"
+        in:
+          input_dir: node_inference/output_dir
         out:
           - stac_catalog
 
@@ -39,10 +45,11 @@ $graph:
     id: inference
     label: Flood detection model inference
     doc: Run flood detection model inference image
-    arguments: ["--stac-output"]
+    baseCommand: ["python3", "/app/inference.py"]
+    arguments: ["/app/model.onnx"]
     hints:
       DockerRequirement:
-        dockerPull: eoepca/flood-detection-model:v2-0.2.0
+        dockerPull: eoepca/flood-detection-model:v2-0.3.0
     requirements:
       ResourceRequirement:
         coresMin: 1
@@ -55,35 +62,67 @@ $graph:
         inputBinding:
           position: 1
     outputs:
-      stac_catalog:
+      output_dir:
         type: Directory
         outputBinding:
           glob: "predictions"
 
   - class: CommandLineTool
-    id: download-stac
-    label: Download STAC assets
-    doc: Receive STAC item URL and dump the assets in output directory
-    baseCommand: ["uvx", "eodag", "download"]
-    arguments: ["--output-dir", "_assets"]
+    id: stac-prepare
+    label: STAC preparation
+    doc: Receive STAC item/catalog and dump the assets in directory
+    baseCommand: ["python", "-m", "eoap"]
+    arguments: ["--prepare", "--output", "_assets"]
     hints:
       DockerRequirement:
-        dockerPull: astral/uv:0.7-python3.12-bookworm-slim
+        dockerPull: eoepca/cwl-eoap:0.1.0
     requirements:
+      EnvVarRequirement:
+        envDef:
+          PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+          PYTHONPATH: /app
       ResourceRequirement:
         coresMin: 1
         coresMax: 1
         ramMin: 512
         ramMax: 512
-      NetworkAccess:
-        networkAccess: true
     inputs:
       stac_item:
-        type: string
+        type: Directory
         inputBinding:
-          prefix: --stac-item
+          position: 1
     outputs:
       assets_dir:
         type: Directory
         outputBinding:
           glob: "_assets"
+
+  - class: CommandLineTool
+    id: stac-cataloging
+    label: STAC cataloging
+    doc: Create STAC catalog from directory of files
+    baseCommand: ["python", "-m", "eoap"]
+    arguments: ["--catalog", "--output", "_stac_catalog"]
+    hints:
+      DockerRequirement:
+        dockerPull: eoepca/cwl-eoap:0.1.0
+    requirements:
+      EnvVarRequirement:
+        envDef:
+          PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+          PYTHONPATH: /app
+      ResourceRequirement:
+        coresMin: 1
+        coresMax: 1
+        ramMin: 512
+        ramMax: 512
+    inputs:
+      input_dir:
+        type: Directory
+        inputBinding:
+          position: 1
+    outputs:
+      stac_catalog:
+        type: Directory
+        outputBinding:
+          glob: "_stac_catalog"
