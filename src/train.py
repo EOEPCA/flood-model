@@ -1,7 +1,6 @@
 """Contains all the features needed for model training."""
 
 import argparse
-import os
 import time
 import uuid
 import warnings
@@ -12,7 +11,6 @@ import onnx
 import pandas as pd
 import torch
 from datasets import load_dataset
-from IPython.display import clear_output
 from torch import nn
 from tqdm import tqdm
 
@@ -205,7 +203,6 @@ class TrainTestValidation:
 
         for _ in range(num_epochs):
             self.train_epoch()
-        clear_output()
 
         print("Current Epoch:", cur_epoch)
         self.validation_loop(cur_epoch)
