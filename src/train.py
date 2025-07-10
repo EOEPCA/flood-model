@@ -23,7 +23,7 @@ from data_processing import (
     processTestIm,
 )
 from evaluation import computeAccuracy, computeIOU
-from SimpleUNet import SimpleUNet
+from model import SimpleUNet
 
 # Defining global variables
 LR = 5e-4
