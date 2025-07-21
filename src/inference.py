@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """This file can be used to perform an inference on the trained flood detection model."""
 
 import argparse
@@ -22,14 +23,10 @@ def load_model(fpath):
     return ort_session
 
 
-def get_arr_flood(fpath):
-    """open image with rasterio."""
-    return rasterio.open(fpath).read()
-
-
 def prepare_input_inference(fpath):
     """prepare input."""
-    arr_x = np.nan_to_num(get_arr_flood(fpath))
+    arr_x = rasterio.open(fpath).read()
+    arr_x = np.nan_to_num(arr_x)
     arr_x = np.clip(arr_x, -50, 1)
     arr_x = (arr_x + 50) / 51
     return arr_x
@@ -165,9 +162,8 @@ def predict_image(model, input_path, output_path):
     save(output, output_path)
 
 
-def run():
+def main():
     """Perform an inference and save the results."""
-
     parser = argparse.ArgumentParser()
     parser.add_argument("model_path", type=str, help="Model path")
     parser.add_argument("input_path", type=str, help="Input path")
@@ -184,7 +180,6 @@ def run():
         action="store_true",
         help="Generate STAC catalog as output",
     )
-
     args = parser.parse_args()
 
     # Load model.
@@ -241,4 +236,4 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    main()
