@@ -1,47 +1,46 @@
 """Contains a SimpleUNet model."""
 
 import torch
-import torch.nn as nn
 
 
-class SimpleUNet(nn.Module):
+class SimpleUNet(torch.nn.Module):
     def __init__(self):
         super(SimpleUNet, self).__init__()
 
-        self.enc1 = nn.Sequential(
-            nn.Conv2d(2, 64, kernel_size=3, padding=1),
-            nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True),
-            nn.Dropout(0.3),
+        self.enc1 = torch.nn.Sequential(
+            torch.nn.Conv2d(2, 64, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(64),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.Dropout(0.3),
         )
-        self.enc2 = nn.Sequential(
-            nn.Conv2d(64, 128, kernel_size=3, padding=1),
-            nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
-            nn.Dropout(0.3),
+        self.enc2 = torch.nn.Sequential(
+            torch.nn.Conv2d(64, 128, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(128),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.Dropout(0.3),
         )
-        self.enc3 = nn.Sequential(
-            nn.Conv2d(128, 256, kernel_size=3, padding=1),
-            nn.BatchNorm2d(256),
-            nn.ReLU(inplace=True),
-            nn.Dropout(0.3),
+        self.enc3 = torch.nn.Sequential(
+            torch.nn.Conv2d(128, 256, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(256),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.Dropout(0.3),
         )
 
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.pool = torch.nn.MaxPool2d(kernel_size=2, stride=2)
 
-        self.dec1 = nn.Sequential(
-            nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2),
-            nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
-            nn.Dropout(0.3),
+        self.dec1 = torch.nn.Sequential(
+            torch.nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2),
+            torch.nn.BatchNorm2d(128),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.Dropout(0.3),
         )
-        self.dec2 = nn.Sequential(
-            nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2),
-            nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True),
-            nn.Dropout(0.3),
+        self.dec2 = torch.nn.Sequential(
+            torch.nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2),
+            torch.nn.BatchNorm2d(64),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.Dropout(0.3),
         )
-        self.dec3 = nn.Conv2d(64, 2, kernel_size=3, padding=1)
+        self.dec3 = torch.nn.Conv2d(64, 2, kernel_size=3, padding=1)
 
     def forward(self, x):
         # Encoder
