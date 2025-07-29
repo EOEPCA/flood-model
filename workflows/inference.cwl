@@ -1,5 +1,7 @@
 cwlVersion: v1.2
-s:softwareVersion: "0.3.0"
+s:softwareVersion: "0.4.0"
+s:license: https://spdx.org/licenses/Apache-2.0
+s:codeRepository: https://github.com/EOEPCA/flood-model
 
 $namespaces:
   s: https://schema.org/
@@ -36,7 +38,7 @@ $graph:
     arguments: ["/app/model.onnx"]
     hints:
       DockerRequirement:
-        dockerPull: eoepca/flood-detection-model:v2-0.3.0
+        dockerPull: eoepca/flood-detection-model:v2-0.4.0
     requirements:
       ResourceRequirement:
         coresMin: 1
