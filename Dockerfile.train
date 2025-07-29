@@ -1,17 +1,25 @@
 FROM python:3.12-slim
 
-COPY requirements-train.txt /app/requirements-train.txt
-COPY requirements-train.torch.txt /app/requirements-train.torch.txt
+COPY requirements-train.txt /home/app/requirements-train.txt
+COPY requirements-train.torch.txt /home/app/requirements-train.torch.txt
+
+RUN groupadd -g 1000 app && \
+    useradd -mr -d /home/app -s /bin/bash -u 1000 -g 1000 app
 
 RUN apt-get update && \
     apt-get install -y libexpat1 git && \
-    pip install --no-cache-dir -r /app/requirements-train.torch.txt && \
-    pip install --no-cache-dir -r /app/requirements-train.txt && \
+    pip install --no-cache-dir -r /home/app/requirements-train.torch.txt && \
+    pip install --no-cache-dir -r /home/app/requirements-train.txt && \
     rm -rf /var/lib/apt/lists/*
 
-COPY src /app/src
-COPY sen1floods11-dataset /app/sen1floods11-dataset
+COPY src/train.py /home/app/train.py
+COPY src/model.py /home/app/model.py
+COPY src/data_processing.py /home/app/data_processing.py
+COPY src/evaluation.py /home/app/evaluation.py
 
-WORKDIR /app
+WORKDIR /home/app
 
-ENTRYPOINT ["sh", "-c", "cd /app && mkdir checkpoints && exec python3 src/train.py --stream"]
+USER app
+
+ENTRYPOINT []
+CMD []

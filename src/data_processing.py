@@ -1,49 +1,39 @@
-import csv
-import os
+import importlib.util
 import random
+from collections.abc import Callable, Generator, Mapping
+from pathlib import Path
+from typing import Any
 
-import mlflow
 import numpy as np
-import rasterio
 import torch
 import torchvision.transforms.functional as F
 from PIL import Image
 from torchvision import transforms
 
 
-class InMemoryDataset(torch.utils.data.Dataset):
-    def __init__(self, data_list, preprocess_func):
-        self.data_list = data_list
-        self.preprocess_func = preprocess_func
+def load_dataset(
+    dataset_path: Path,
+) -> Mapping[str, Callable[..., Generator[dict, Any, Any]]]:
+    # sys.path.append(str(dataset_path))
+    # from dataset import DatasetLoader
+    # return DatasetLoader(dataset_path)
 
-    def __getitem__(self, i):
-        return self.preprocess_func(self.data_list[i])
+    module_path = dataset_path / "dataset.py"
+    spec = importlib.util.spec_from_file_location(module_path.stem, module_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not load module from {module_path}")
 
-    def __len__(self):
-        return len(self.data_list)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
 
-
-class StreamingDataset(torch.utils.data.IterableDataset):
-    def __init__(self, data_iterable, preprocess_func):
-        self.data_iterable = data_iterable
-        self.preprocess_func = preprocess_func
-
-    def __iter__(self):
-        for data in self.data_iterable:
-            yield self.preprocess_func(data, streaming=True)
-
-    def with_format(self, format_type):
-        self.data_iterable = self.data_iterable.with_format(format_type)
-        return self
+    DatasetLoader = getattr(module, "DatasetLoader")
+    return DatasetLoader(dataset_path)
 
 
-def processAndAugment(data, streaming=False):
-    if streaming:
-        x = data["image"]
-        y = data["mask"].astype(np.int16)
-    else:
-        (x, y) = data
-    im, label = x.copy(), y.copy()
+def process_training_data(data: dict) -> dict:
+    image, mask = _prepare_data(data)
+
+    im, label = image.copy(), mask.copy()
 
     # convert to PIL for easier transforms
     im1 = Image.fromarray(im[0])
@@ -78,13 +68,10 @@ def processAndAugment(data, streaming=False):
     return im, label
 
 
-def processTestIm(data, streaming=False):
-    if streaming:
-        x = data["image"]
-        y = data["mask"].astype(np.int16)
-    else:
-        (x, y) = data
-    im, label = x.copy(), y.copy()
+def process_validation_data(data: dict) -> dict:
+    image, mask = _prepare_data(data)
+
+    im, label = image.copy(), mask.copy()
     norm = transforms.Normalize([0.6851, 0.5235], [0.0820, 0.1102])
 
     # convert to PIL for easier transforms
@@ -131,58 +118,21 @@ def processTestIm(data, streaming=False):
     return ims, labels
 
 
-def getArrFlood(fname):
-    return rasterio.open(fname).read()
+def _prepare_data(data: dict) -> tuple[np.ndarray, np.ndarray]:
+    image, mask = data["image"], data["mask"]
+    image = _prepare_image_data(image)
+    mask = _prepare_mask_data(mask)
+    return image, mask
 
 
-def download_flood_water_data_from_list(l):
-    i = 0
-    flood_data = []
-    for im_fname, mask_fname in l:
-        if not os.path.exists(im_fname):
-            continue
-        arr_x = np.nan_to_num(getArrFlood(im_fname))
-        arr_y = getArrFlood(mask_fname)
-        arr_y[arr_y == -1] = 255
-
-        arr_x = np.clip(arr_x, -50, 1)
-        arr_x = (arr_x + 50) / 51
-
-        if i % 100 == 0:
-            print(im_fname, mask_fname)
-        i += 1
-        flood_data.append((arr_x, arr_y))
-
-    return flood_data
+def _prepare_image_data(image: np.ndarray) -> np.ndarray:
+    image = np.nan_to_num(image)
+    image = np.clip(image, -50, 1)
+    image = (image + 50) / 51
+    return image
 
 
-def load_flood_train_data(input_root, label_root):
-    fname = "sen1floods11-dataset/flood_train_data.csv"
-    mlflow.log_artifact(fname, artifact_path="train_data")
-    training_files = []
-    with open(fname) as f:
-        for line in csv.reader(f):
-            training_files.append(tuple((input_root + line[0], label_root + line[1])))
-
-    return download_flood_water_data_from_list(training_files)
-
-
-def load_flood_test_data(input_root, label_root):
-    fname = "sen1floods11-dataset/flood_test_data.csv"
-    testing_files = []
-    with open(fname) as f:
-        for line in csv.reader(f):
-            testing_files.append(tuple((input_root + line[0], label_root + line[1])))
-
-    return download_flood_water_data_from_list(testing_files)
-
-
-def load_flood_valid_data(input_root, label_root):
-    fname = "sen1floods11-dataset/flood_valid_data.csv"
-    mlflow.log_artifact(fname, artifact_path="valid_data")
-    validation_files = []
-    with open(fname) as f:
-        for line in csv.reader(f):
-            validation_files.append(tuple((input_root + line[0], label_root + line[1])))
-
-    return download_flood_water_data_from_list(validation_files)
+def _prepare_mask_data(mask: np.ndarray) -> np.ndarray:
+    mask[mask == -1] = 255
+    # mask = mask.astype(np.int16)
+    return mask
