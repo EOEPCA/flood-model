@@ -10,28 +10,41 @@ schemas:
 
 $graph:
   - class: Workflow
-    id: main
+    id: flood-detection-model-inference
     label: Flood detection model inference
-    doc: Run flood detection model inference image
+    doc: Run flood detection model inference on STAC catalog
     inputs:
-      input_dir:
+      stac_item:
         type: Directory
-        label: Image directory
+        label: STAC item reference
+        doc: Reference to a STAC item
     outputs:
-      output_dir:
+      stac_catalog:
         type: Directory
-        label: Output directory
-        outputSource: node_run_inference/output_dir
+        outputSource: node_stac_cataloging/stac_catalog
+
     steps:
-      node_run_inference:
-        run: "#run_inference"
+      node_stac_prepare:
+        run: "#stac-prepare"
         in:
-          input_dir: input_dir
+          stac_item: stac_item
+        out:
+          - assets_dir
+      node_inference:
+        run: "#inference"
+        in:
+          input_dir: node_stac_prepare/assets_dir
         out:
           - output_dir
+      node_stac_cataloging:
+        run: "#stac-cataloging"
+        in:
+          input_dir: node_inference/output_dir
+        out:
+          - stac_catalog
 
   - class: CommandLineTool
-    id: run_inference
+    id: inference
     label: Flood detection model inference
     doc: Run flood detection model inference image
     baseCommand: ["python3", "/app/inference.py"]
@@ -55,3 +68,63 @@ $graph:
         type: Directory
         outputBinding:
           glob: "predictions"
+
+  - class: CommandLineTool
+    id: stac-prepare
+    label: STAC preparation
+    doc: Receive STAC item/catalog and dump the assets in directory
+    baseCommand: ["python", "-m", "eoap"]
+    arguments: ["--prepare", "--output", "_assets"]
+    hints:
+      DockerRequirement:
+        dockerPull: eoepca/cwl-eoap:0.1.0
+    requirements:
+      EnvVarRequirement:
+        envDef:
+          PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+          PYTHONPATH: /app
+      ResourceRequirement:
+        coresMin: 1
+        coresMax: 1
+        ramMin: 512
+        ramMax: 512
+    inputs:
+      stac_item:
+        type: Directory
+        inputBinding:
+          position: 1
+    outputs:
+      assets_dir:
+        type: Directory
+        outputBinding:
+          glob: "_assets"
+
+  - class: CommandLineTool
+    id: stac-cataloging
+    label: STAC cataloging
+    doc: Create STAC catalog from directory of files
+    baseCommand: ["python", "-m", "eoap"]
+    arguments: ["--catalog", "--output", "_stac_catalog"]
+    hints:
+      DockerRequirement:
+        dockerPull: eoepca/cwl-eoap:0.1.0
+    requirements:
+      EnvVarRequirement:
+        envDef:
+          PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+          PYTHONPATH: /app
+      ResourceRequirement:
+        coresMin: 1
+        coresMax: 1
+        ramMin: 512
+        ramMax: 512
+    inputs:
+      input_dir:
+        type: Directory
+        inputBinding:
+          position: 1
+    outputs:
+      stac_catalog:
+        type: Directory
+        outputBinding:
+          glob: "_stac_catalog"
