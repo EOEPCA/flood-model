@@ -10,7 +10,7 @@ schemas:
 
 $graph:
   - class: Workflow
-    id: flood-model-inference
+    id: flood-detection-model-inference
     label: Flood detection model inference
     doc: Run flood detection model inference on STAC catalog
     inputs:

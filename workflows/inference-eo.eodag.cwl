@@ -10,9 +10,9 @@ schemas:
 
 $graph:
   - class: Workflow
-    id: flood-model-inference
-    label: Flood detection model inference
-    doc: Run flood detection model inference on STAC catalog
+    id: flood-detection-model-inference-with EODAG
+    label: Flood detection model inference with EODAG
+    doc: Run flood detection model inference on STAC item downloaded with EODAG
     inputs:
       stac_item:
         type: string
