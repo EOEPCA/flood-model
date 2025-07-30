@@ -262,13 +262,11 @@ def main():
     )
     parser.add_argument(
         "--mlflow-uri",
-        # default="https://develop.eoepca.org/mlflow/sharinghub-test/flood-model/tracking/",
-        default="./mlruns",
         help="MLflow tracking URI",
     )
     parser.add_argument(
         "--mlflow-experiment",
-        default="Training (7)",
+        default="Training",
         help="MLflow experiment name",
     )
     args = parser.parse_args()
