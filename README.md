@@ -1,3 +1,20 @@
+---
+extensions:
+  mlm: https://stac-extensions.github.io/mlm/v1.4.0/schema.json
+
+mlm:
+  name: flood-detection-model
+  architecture: UNet
+  tasks: [semantic-segmentation]
+  framework: PyTorch
+  framework_version: "2.7"
+  input: []
+  output: []
+
+related:
+  dataset: https://gitlab.develop.eoepca.org/sharinghub-test/sen1floods11-dataset
+---
+
 # Flood Model
 
 ![Preview](./flood.png)
@@ -5,7 +22,7 @@
 Flood Model is a neural network used to perform image segmentation to detect flood areas.
 
 ## Getting started
- 
+
 ## Tutorial
 
 If you want to try using this model, follow our tutorial to train the model on a dataset.
