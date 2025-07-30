@@ -275,7 +275,11 @@ def main():
     if not dataset_path.is_dir():
         print(f"ERROR: Dataset not found at '{dataset_path}'")
 
-    mlflow.set_tracking_uri(args.mlflow_uri)
+    mlflow_tracking_uri = args.mlflow_uri
+    if not args.mlflow_uri:
+        mlflow_tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "./mlruns")
+
+    mlflow.set_tracking_uri(mlflow_tracking_uri)
     mlflow.set_experiment(args.mlflow_experiment)
 
     fmt = FloodModelTraining(
